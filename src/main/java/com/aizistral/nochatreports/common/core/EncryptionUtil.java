@@ -6,6 +6,7 @@ import com.aizistral.nochatreports.common.NCRCore;
 import com.aizistral.nochatreports.common.config.NCRConfig;
 import com.aizistral.nochatreports.common.encryption.Encryptor;
 
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentContents;
 import net.minecraft.network.chat.MutableComponent;
@@ -42,9 +43,18 @@ public class EncryptionUtil {
 				return true;
 			}
 		} else if (component.getContents() instanceof TranslatableContents translatable) {
-			for (Object arg : translatable.args) {
+			for (int i = 0; i < translatable.args.length; i++) {
+				Object arg = translatable.args[i];
+
 				if (arg instanceof MutableComponent mutable) {
 					if (tryDecrypt(mutable, encryptor)) {
+						decryptedSiblings = true;
+					}
+				} else if (arg instanceof String str) {
+					var decrypted = tryDecrypt(str, encryptor);
+
+					if (decrypted.isPresent()) {
+						translatable.args[i] = decrypted.get();
 						decryptedSiblings = true;
 					}
 				}
@@ -72,7 +82,7 @@ public class EncryptionUtil {
 	}
 
 	public static Component recreate(Component component) {
-		return Component.Serializer.fromJson(Component.Serializer.toJson(component));
+		return Component.Serializer.fromJson(Component.Serializer.toJson(component, RegistryAccess.EMPTY), RegistryAccess.EMPTY);
 	}
 
 }
